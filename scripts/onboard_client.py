@@ -664,7 +664,30 @@ def step_jira(state: OnboardingState, service_groups: list[str] | None = None) -
     from jira_wrapper._base import _api_call as jira_api
     from jira_wrapper import search_issues
 
-    # Populate issues from static template map
+    # --- Phase 1: Delete JPD sample ideas (before creating ours) ---
+    # JPD projects auto-create ~5 sample ideas. Delete them first so we
+    # start from a clean slate. Poll until samples appear (30s timeout).
+    sample_deleted = 0
+    for attempt in range(10):
+        if attempt > 0:
+            time.sleep(3)
+        sample_issues = search_issues(f"project = {jira_key}", max_results=50)
+        if sample_issues:
+            log.info("Jira: found %d sample ideas to delete (attempt %d)", len(sample_issues), attempt + 1)
+            for issue in sample_issues:
+                try:
+                    jira_api("DELETE", f"issue/{issue['key']}")
+                    sample_deleted += 1
+                except Exception as e:
+                    log.warning("Jira: failed to delete sample %s: %s", issue["key"], e)
+            break
+        log.info("Jira: waiting for sample ideas to be indexed (attempt %d/10)", attempt + 1)
+    if sample_deleted:
+        log.info("Jira: deleted %d sample ideas from '%s'", sample_deleted, jira_key)
+    else:
+        log.info("Jira: no sample ideas found (timeout or none created)")
+
+    # --- Phase 2: Create template issues ---
     if not service_groups:
         log.info("Jira: no service groups selected — empty project")
         copy_result = {"copied": {}, "errors": [], "total_source": 0}
@@ -680,7 +703,6 @@ def step_jira(state: OnboardingState, service_groups: list[str] | None = None) -
             from template_maps import JIRA_TEMPLATE_MAP
             from jira_wrapper import bulk_create_issues, text_to_adf
 
-            # Filter static map by prefix (Python string matching — no JQL)
             filtered = [i for i in JIRA_TEMPLATE_MAP
                         if any(i["summary"].startswith(p) for p in prefixes)]
             log.info("Jira: %d issues match prefixes %s", len(filtered), prefixes)
@@ -705,7 +727,6 @@ def step_jira(state: OnboardingState, service_groups: list[str] | None = None) -
                 created_issues = result.get("issues", [])
                 errors = result.get("errors", [])
 
-                # Map created issues by index
                 failed_indices = {e.get("failedElementNumber") for e in errors}
                 created_idx = 0
                 for i, issue_def in enumerate(batch):
@@ -718,35 +739,6 @@ def step_jira(state: OnboardingState, service_groups: list[str] | None = None) -
             log.info("Jira: created %d/%d issues (%d errors)",
                      len(copied), len(filtered), len(all_errors))
             copy_result = {"copied": copied, "errors": all_errors, "total_source": len(filtered)}
-
-    # Delete any issues NOT created by us (JPD sample ideas)
-    # Retry search until we see at least our own issues (Jira indexing lag)
-    our_keys = set(copy_result.get("copied", {}).values())
-    sample_issues = []
-    for attempt in range(5):
-        if attempt > 0:
-            time.sleep(3)
-        all_issues = search_issues(f"project = {jira_key}", max_results=300)
-        found_ours = sum(1 for i in all_issues if i["key"] in our_keys)
-        sample_issues = [i for i in all_issues if i["key"] not in our_keys]
-        log.info("Jira cleanup attempt %d: %d total, %d ours, %d samples",
-                 attempt + 1, len(all_issues), found_ours, len(sample_issues))
-        # If we can see our created issues, the index is caught up
-        if our_keys and found_ours >= len(our_keys) * 0.8:
-            break
-        # If no service groups (empty project), just look for any issues to delete
-        if not our_keys and all_issues:
-            break
-    deleted = 0
-    for issue in sample_issues:
-        try:
-            jira_api("DELETE", f"issue/{issue['key']}")
-            deleted += 1
-            log.info("Jira: deleted sample issue %s (%s)", issue["key"], issue.get("summary", ""))
-        except Exception as e:
-            log.warning("Jira: failed to delete %s: %s", issue["key"], e)
-    if sample_issues:
-        log.info("Jira: deleted %d/%d sample issues from '%s'", deleted, len(sample_issues), jira_key)
 
     base_url = doppler_get("JIRA_PUZZLES_BASE_URL")
     state.set_step("jira", {
