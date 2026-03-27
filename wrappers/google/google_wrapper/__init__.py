@@ -1,0 +1,87 @@
+"""
+Google API Wrapper — Multi-account access to Gmail, Calendar, People, Drive, and Docs APIs.
+Gmail, Drive, and Docs are fully implemented; Calendar and People are service stubs only.
+"""
+
+from ._base import (
+    use_google,
+    get_gmail_service,
+    get_calendar_service,
+    get_people_service,
+    get_drive_service,
+    get_docs_service,
+    get_current_account,
+    get_account_email,
+    authenticate,
+)
+
+from .gmail import (
+    send_email,
+    get_messages,
+    get_message,
+    create_draft,
+    list_threads,
+    get_thread,
+    reply_to_thread,
+    create_draft_reply,
+    get_history,
+    get_profile,
+    batch_get_threads,
+    parse_message_headers,
+    extract_body,
+    is_our_email,
+    modify_thread,
+    create_label,
+    get_labels,
+    OUR_EMAILS,
+)
+
+from .drive import (
+    list_files,
+    search_files,
+    get_file_metadata,
+    download_file,
+    export_file,
+    upload_file,
+    update_file_content,
+    copy_file,
+    create_folder,
+    list_folder_contents,
+    move_file,
+    get_or_create_folder_path,
+    trash_file,
+    delete_file_permanently,
+    rename_file,
+    share_file,
+    share_file_with_link,
+    list_permissions,
+    remove_permission,
+    list_comments,
+    add_comment,
+    reply_to_comment,
+    resolve_comment,
+    GOOGLE_DOC,
+    GOOGLE_SHEET,
+    GOOGLE_SLIDE,
+    GOOGLE_FOLDER,
+    EXPORT_FORMATS,
+)
+
+from .docs import (
+    create_doc,
+    get_doc,
+    get_doc_text,
+    get_doc_metadata,
+    append_text,
+    insert_text,
+    replace_text,
+    delete_range,
+    batch_update,
+    clear_doc,
+    apply_text_style,
+    apply_paragraph_style,
+    insert_page_break,
+    insert_table,
+    push_markdown,
+    push_markdown_file,
+)

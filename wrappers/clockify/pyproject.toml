@@ -1,0 +1,15 @@
+[project]
+name = "clockify_wrapper"
+version = "1.0.0"
+description = "Clockify time tracking API wrapper — clients, reports, workspace auto-detection"
+requires-python = ">=3.9"
+dependencies = [
+    "requests>=2.28.0",
+]
+
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["clockify_wrapper*"]

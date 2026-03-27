@@ -1,0 +1,16 @@
+[project]
+name = "google_wrapper"
+version = "1.0.0"
+description = "Google API wrapper — multi-account OAuth2 for Gmail, Calendar, and People APIs"
+requires-python = ">=3.9"
+dependencies = [
+    "google-api-python-client",
+    "google-auth-oauthlib",
+]
+
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["google_wrapper*"]

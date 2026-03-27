@@ -1,0 +1,15 @@
+[project]
+name = "telegram_wrapper"
+version = "1.0.0"
+description = "Telegram bot notifications — error notifications and messaging via Bot API"
+requires-python = ">=3.9"
+dependencies = [
+    "httpx>=0.24.0",
+]
+
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["telegram_wrapper*"]

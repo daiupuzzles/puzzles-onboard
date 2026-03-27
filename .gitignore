@@ -1,0 +1,21 @@
+# State files (runtime, mounted as volume)
+scripts/state/*.json
+scripts/state/*.tmp
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+.env.*
+doppler.env
+doppler.json
+
+# IDE
+.vscode/
+.idea/
+*.swp

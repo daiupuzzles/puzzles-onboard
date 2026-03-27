@@ -1,0 +1,15 @@
+[project]
+name = "asana_wrapper"
+version = "1.0.0"
+description = "Asana API wrapper — workspace context, task/project/user CRUD, search, subtask inheritance"
+requires-python = ">=3.9"
+dependencies = [
+    "asana>=5.2.2",
+]
+
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["asana_wrapper*"]
