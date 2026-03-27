@@ -720,17 +720,33 @@ def step_jira(state: OnboardingState, service_groups: list[str] | None = None) -
             copy_result = {"copied": copied, "errors": all_errors, "total_source": len(filtered)}
 
     # Delete any issues NOT created by us (JPD sample ideas)
-    # By now enough time has passed for Jira to index everything
+    # Retry search until we see at least our own issues (Jira indexing lag)
     our_keys = set(copy_result.get("copied", {}).values())
-    all_issues = search_issues(f"project = {jira_key}", max_results=300)
-    sample_issues = [i for i in all_issues if i["key"] not in our_keys]
+    sample_issues = []
+    for attempt in range(5):
+        if attempt > 0:
+            time.sleep(3)
+        all_issues = search_issues(f"project = {jira_key}", max_results=300)
+        found_ours = sum(1 for i in all_issues if i["key"] in our_keys)
+        sample_issues = [i for i in all_issues if i["key"] not in our_keys]
+        log.info("Jira cleanup attempt %d: %d total, %d ours, %d samples",
+                 attempt + 1, len(all_issues), found_ours, len(sample_issues))
+        # If we can see our created issues, the index is caught up
+        if our_keys and found_ours >= len(our_keys) * 0.8:
+            break
+        # If no service groups (empty project), just look for any issues to delete
+        if not our_keys and all_issues:
+            break
+    deleted = 0
+    for issue in sample_issues:
+        try:
+            jira_api("DELETE", f"issue/{issue['key']}")
+            deleted += 1
+            log.info("Jira: deleted sample issue %s (%s)", issue["key"], issue.get("summary", ""))
+        except Exception as e:
+            log.warning("Jira: failed to delete %s: %s", issue["key"], e)
     if sample_issues:
-        log.info("Jira: deleting %d sample/default issues from '%s'", len(sample_issues), jira_key)
-        for issue in sample_issues:
-            try:
-                jira_api("DELETE", f"issue/{issue['key']}")
-            except Exception as e:
-                log.warning("Jira: failed to delete %s: %s", issue["key"], e)
+        log.info("Jira: deleted %d/%d sample issues from '%s'", deleted, len(sample_issues), jira_key)
 
     base_url = doppler_get("JIRA_PUZZLES_BASE_URL")
     state.set_step("jira", {
