@@ -161,6 +161,9 @@ def update_client(
 def archive_client(client_id: str, workspace_id: Optional[str] = None) -> dict:
     """Archive a client.
 
+    Clockify's PUT endpoint requires `name` in the body (full update, not patch).
+    Fetches the current client first to preserve the name.
+
     Args:
         client_id: Clockify client ID.
         workspace_id: Override workspace (default: auto-detected).
@@ -168,7 +171,8 @@ def archive_client(client_id: str, workspace_id: Optional[str] = None) -> dict:
     Returns:
         Updated client dict.
     """
-    return update_client(client_id, workspace_id, archived=True)
+    current = get_client(client_id, workspace_id)
+    return update_client(client_id, workspace_id, name=current["name"], archived=True)
 
 
 def delete_client(client_id: str, workspace_id: Optional[str] = None) -> dict:

@@ -8,14 +8,15 @@ from typing import Optional
 
 log = logging.getLogger(__name__)
 
-_cache: Optional[dict] = None
+_cache: dict[tuple[str, str], dict] = {}
 
 
 def get_secrets(project: str = "flowsly", config: str = "prd") -> dict:
     """Fetch all secrets from a Doppler project as a dict.
 
-    Results are cached after first call to avoid repeated subprocess invocations.
-    Falls back to os.environ when Doppler CLI is not available (e.g., Modal).
+    Results are cached per (project, config) to avoid repeated subprocess
+    invocations while supporting multiple Doppler projects in the same process.
+    Falls back to os.environ when Doppler CLI is not available or lacks access.
 
     Args:
         project: Doppler project (default: "flowsly")
@@ -24,9 +25,9 @@ def get_secrets(project: str = "flowsly", config: str = "prd") -> dict:
     Returns:
         Dict of secret_key -> secret_value
     """
-    global _cache
-    if _cache is not None:
-        return _cache
+    cache_key = (project, config)
+    if cache_key in _cache:
+        return _cache[cache_key]
 
     try:
         result = subprocess.run(
@@ -37,11 +38,11 @@ def get_secrets(project: str = "flowsly", config: str = "prd") -> dict:
         if result.returncode != 0:
             log.warning("Doppler failed for %s/%s: %s — falling back to os.environ",
                         project, config, result.stderr.strip())
-            _cache = dict(os.environ)
+            _cache[cache_key] = dict(os.environ)
         else:
-            _cache = json.loads(result.stdout)
+            _cache[cache_key] = json.loads(result.stdout)
     except FileNotFoundError:
         log.info("Doppler CLI not found, falling back to os.environ")
-        _cache = dict(os.environ)
+        _cache[cache_key] = dict(os.environ)
 
-    return _cache
+    return _cache[cache_key]
