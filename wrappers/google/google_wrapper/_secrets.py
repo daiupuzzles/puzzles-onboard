@@ -35,8 +35,11 @@ def get_secrets(project: str = "flowsly", config: str = "prd") -> dict:
             capture_output=True, text=True,
         )
         if result.returncode != 0:
-            raise RuntimeError(f"Doppler failed for {project}/{config}: {result.stderr.strip()}")
-        _cache = json.loads(result.stdout)
+            log.warning("Doppler failed for %s/%s: %s — falling back to os.environ",
+                        project, config, result.stderr.strip())
+            _cache = dict(os.environ)
+        else:
+            _cache = json.loads(result.stdout)
     except FileNotFoundError:
         log.info("Doppler CLI not found, falling back to os.environ")
         _cache = dict(os.environ)
